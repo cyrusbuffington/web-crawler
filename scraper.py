@@ -1,5 +1,6 @@
 import re
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -15,7 +16,27 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
+
+    soup = BeautifulSoup(resp.raw_response.content, 'lxml')
+    print(soup.get_text())
+
+    link_tags = soup.find_all('a')
+
+    # Extract the URLs from the anchor tags
+    link_urls = [url + link.get('href') for link in link_tags]
+    print(link_urls)
+
     return list()
+
+    #TO DO:
+    # -Make tokenizer for raw_response.content to return links and get common words
+    #   Might need two tokenizers?
+    # -Determine what makes a valid page
+    #   Make parser for robots.txt 
+    #   Look into more criteria
+    # -Look into how to avoid traps
+
+
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
@@ -38,5 +59,3 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
-
-#test commit
