@@ -22,19 +22,26 @@ def extract_next_links(url, resp):
 
     link_tags = soup.find_all('a')
 
+    link_urls = [link.get('href') for link in link_tags]
+    print(link_urls)
+
     # Extract the URLs from the anchor tags
-    link_urls = [url + link.get('href') for link in link_tags]
+    link_urls = []
+    for link in link_tags:
+        link = link.get('href')
+        if link[0:2] == '//' and valid_domain(url):
+            link_urls.append(link)
+        elif link[0] == '/':
+            link_urls.append(url + link)
+        elif link[0:6] == 'https:' and valid_domain(url):
+            link_urls.append(link)
+    
     print(link_urls)
 
     return list()
 
     #TO DO:
-    # -Make tokenizer for raw_response.content to return links and get common words
-    #   Might need two tokenizers?
-    # -Determine what makes a valid page
-    #   Make parser for robots.txt 
-    #   Look into more criteria
-    # -Look into how to avoid traps
+    #PARSE LINKS CORRECTLY
 
 
 
@@ -59,3 +66,18 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
+def valid_domain(url):
+    valid_domains = {'ics.uci.edu',
+                    'cs.uci.edu',
+                    'informatics.uci.edu',
+                    'stat.uci.edu'}
+
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc.split('.')  
+    if len(domain) < 3:
+        return False
+    # Get the last three parts of the domain
+    domain = '.'.join(domain[-3:])
+    return domain in valid_domains
+    
