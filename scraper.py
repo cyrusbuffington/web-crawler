@@ -1,10 +1,10 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin, urlunparse
+from urllib import robotparser
 from bs4 import BeautifulSoup
 
 def scraper(url, resp):
-    links = extract_next_links(url, resp)
-    return [link for link in links if is_valid(link)]
+    return extract_next_links(url, resp)
 
 def extract_next_links(url, resp):
     # Implementation required.
@@ -17,32 +17,33 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
+    #Return empty list if error
+    if resp.status != 200:
+        return list()
+
+    #Parse html content
     soup = BeautifulSoup(resp.raw_response.content, 'lxml')
-    print(soup.get_text())
 
-    link_tags = soup.find_all('a')
+    #Get all <a hrefs>s
+    link_tags = soup.find_all('a', href=True)
 
-    link_urls = [link.get('href') for link in link_tags]
-    print(link_urls)
-
-    # Extract the URLs from the anchor tags
+    # Extract the URLs from the anchor tags and reformat
     link_urls = []
     for link in link_tags:
         link = link.get('href')
-        if link[0:2] == '//' and valid_domain(url):
+        if not link or link[0] == '#':
+            pass
+        elif link.startswith('//'):
+            link = 'https:' + link
+        elif link.startswith('/'):
+            link = urljoin(url, link)
+        #Remove query and fragment from link to avoid repetitive information
+        link = urlunparse(urlparse(link)._replace(query='',fragment=''))
+        #Add url to link list if it is valid and can be crawled
+        if is_valid(link):
             link_urls.append(link)
-        elif link[0] == '/':
-            link_urls.append(url + link)
-        elif link[0:6] == 'https:' and valid_domain(url):
-            link_urls.append(link)
-    
-    print(link_urls)
 
-    return list()
-
-    #TO DO:
-    #PARSE LINKS CORRECTLY
-
+    return link_urls
 
 
 def is_valid(url):
@@ -53,6 +54,7 @@ def is_valid(url):
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
             return False
+
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
@@ -61,7 +63,7 @@ def is_valid(url):
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower()) and valid_domain(url)
 
     except TypeError:
         print ("TypeError for ", parsed)
@@ -80,4 +82,9 @@ def valid_domain(url):
     # Get the last three parts of the domain
     domain = '.'.join(domain[-3:])
     return domain in valid_domains
-    
+
+
+def is_root_url(url):
+    parsed_url = urlparse(url)
+    return parsed_url.path in ('', '/')
+
