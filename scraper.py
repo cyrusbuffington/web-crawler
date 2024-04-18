@@ -79,7 +79,7 @@ def extract_next_links(url, resp, frontier):
     #Extract the URLs from the anchor tags and reformat
     link_urls = []
     for link in link_tags:
-        link = link.get('href')
+        link = link.get('href').strip()
         if not link or link[0] == '#':
             pass
         elif link.startswith('//'):
