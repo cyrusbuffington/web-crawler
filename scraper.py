@@ -4,10 +4,10 @@ from urllib import robotparser
 from bs4 import BeautifulSoup
 from hashlib import sha256
 
-def scraper(url, resp, fingerprints, downloaded):
-    return extract_next_links(url, resp, fingerprints, downloaded)
+def scraper(url, resp, frontier):
+    return extract_next_links(url, resp, frontier)
 
-def extract_next_links(url, resp, fingerprints, downloaded):
+def extract_next_links(url, resp, frontier):
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -20,7 +20,7 @@ def extract_next_links(url, resp, fingerprints, downloaded):
 
 
     #Add url to total set of extracted urls
-    downloaded.add(url)
+    frontier.downloaded.add(url)
 
     #Return empty list if error
     if resp.status != 200:
@@ -30,12 +30,12 @@ def extract_next_links(url, resp, fingerprints, downloaded):
     soup = BeautifulSoup(resp.raw_response.content, 'lxml')
 
     text_content = soup.get_text()
-    
+
     #Handle duplicate content
     content_hash = sha256(text_content.encode()).hexdigest()
-    if content_hash in fingerprints:
+    if content_hash in frontier.fingerprints:
         return list()
-    fingerprints.add(content_hash)
+    frontier.fingerprints.add(content_hash)
 
     #Check content to html ration to see if page has high textual content
     text_content_len = len(text_content)
@@ -43,6 +43,12 @@ def extract_next_links(url, resp, fingerprints, downloaded):
     ratio =  text_content_len / html_content_len
     if ratio < .06:
         return list()
+
+    #Tokenize content and keep track of max words in frontier
+    tokens = tokenize(text_content)
+    if len(tokens) > frontier.max_words:
+        frontier.max_words = len(tokens)
+        frontier.max_words_url = url
 
     #Get all <a hrefs>s
     link_tags = soup.find_all('a', href=True)
@@ -125,3 +131,35 @@ def has_too_many_slashes(url, threshold):
     slash_count = url.count('/')
     return slash_count > threshold
 
+def tokenize(text_content) -> list["Token"]:
+    """
+    Tokenize the text file at the given path and return a list of tokens
+    """
+    tokens = []
+   
+    #Build token and process token when encounter non alphanum char
+    token = ""
+    for char in text_content:
+        char = char.lower()
+        if (ord(char)>=97 and ord(char)<=122) or (ord(char)>=48 and ord(char)<=57) or ord(char)==39:
+            token += char
+        elif len(token)>=3:
+            tokens.append(token)
+            token = ""
+        else:
+            token = ""
+    if token:
+        tokens.append(token)
+
+    return tokens
+
+
+stopwords = {"a","about","above","after","again","against","all","am","an","and","any","are",
+"aren't","as","at","be","because","been","before","being","below","between",
+"both","but","by","can't","cannot","could","couldn't","did","didn't","do","does",
+"doesn't","doing","don't","down","during","each","few","for","from","further","had",
+"hadn't","has","hasn't","have","haven't","having","he","he'd","he'll","he's","her",
+"here","here's","hers","herself","him","his","how","how's","i","i'd","i'll","i'm",
+"i've","if","in","into","is","isn't","it","it's","its","itself","let's","me","more",
+"most","mustn't","my","myself","no","nor","not","of","off","on","once","only","or",
+"other","ought","our","ours"}

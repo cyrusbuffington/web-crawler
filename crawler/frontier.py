@@ -14,6 +14,8 @@ class Frontier(object):
         self.to_be_downloaded = list()
         self.fingerprints = set()
         self.downloaded = set()
+        self.max_words_url = ""
+        self.max_words = 0
         
         if not os.path.exists(self.config.save_file) and not restart:
             # Save file does not exist, but request to load save.

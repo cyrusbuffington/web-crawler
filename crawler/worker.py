@@ -24,13 +24,14 @@ class Worker(Thread):
                 self.logger.info("Frontier is empty. Stopping Crawler.")
                 #Get downloaded subdomain data here with dictionary and self.frontier.downloaded
                 print(f'Unique pages fount: {len(self.frontier.downloaded)}')
+                print(f'Longest page: {self.frontier.max_words_url} with {self.frontier.max_words} words')
                 
                 break
             resp = download(tbd_url, self.config, self.logger)
             self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
                 f"using cache {self.config.cache_server}.")
-            scraped_urls = scraper.scraper(tbd_url, resp, self.frontier.fingerprints, self.frontier.downloaded)
+            scraped_urls = scraper.scraper(tbd_url, resp, self.frontier)
             for scraped_url in scraped_urls:
                 self.frontier.add_url(scraped_url)
             self.frontier.mark_url_complete(tbd_url)
