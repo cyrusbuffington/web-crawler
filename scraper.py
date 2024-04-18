@@ -53,6 +53,7 @@ def extract_next_links(url, resp, frontier):
     if html_content_len == 0 or ratio < .06:
         return list()
 
+
     #Tokenize content and keep track of max words in frontier
     tokens = tokenize(text_content)
     if len(tokens) > frontier.max_words:
@@ -61,7 +62,16 @@ def extract_next_links(url, resp, frontier):
     
     #Update word count for all pages
     token_freq = computeWordFrequencies(tokens)
-    frontier.word_counts.update(token_freq)
+    for key, value in token_freq.items():
+        if key in frontier.word_counts:
+            frontier.word_counts[key] += value
+        else:
+            frontier.word_counts[key] = value
+
+
+    #Add to ics.uci.edu subdomain dictionary
+    if is_subdomain_of('.ics.uci.edu', url):
+        frontier.subdomains[root(url)] = frontier.subdomains.get(root(url), 0) + 1
 
     #Get all <a hrefs>s
     link_tags = soup.find_all('a', href=True)
@@ -180,6 +190,25 @@ def computeWordFrequencies(tokens : list["Token"]) -> dict["Token", int]:
 
     return freq
 
+
+def is_subdomain_of(domain, url):
+    "Returns if url is a subdomain of domain"
+    parsed_url = urlparse(url)
+    netloc = parsed_url.netloc
+    if len(domain) > len(netloc):
+        return False
+    netloc = netloc[-len(domain):]
+    return netloc == domain
+
+def root(url):
+    "Returns root of url"
+    parsed_url = urlparse(url)
+    root_url = "https://" + parsed_url.netloc
+    return root_url
+
+
+
+
 stopwords = {"a","about","above","after","again","against","all","am","an","and","any","are",
 "aren't","as","at","be","because","been","before","being","below","between",
 "both","but","by","can't","cannot","could","couldn't","did","didn't","do","does",
@@ -188,4 +217,10 @@ stopwords = {"a","about","above","after","again","against","all","am","an","and"
 "here","here's","hers","herself","him","his","how","how's","i","i'd","i'll","i'm",
 "i've","if","in","into","is","isn't","it","it's","its","itself","let's","me","more",
 "most","mustn't","my","myself","no","nor","not","of","off","on","once","only","or",
-"other","ought","our","ours"}
+"other","ought","our","ours","ourselves","out","over","own","same","shan't","she",
+"she'd","she'll","she's","should","shouldn't","so","some","such","than","that","that's",
+"the","their","theirs","them","themselves","then","there","there's","these","they","they'd",
+"they'll","they're","they've","this","those","through","to","too","under","until","up","very",
+"was","wasn't","we","we'd","we'll","we're","we've","were","weren't","what","what's","when",
+"when's","where","where's","which","while","who","who's","whom","why","why's","with","won't",
+"would","wouldn't","you","you'd","you'll","you're","you've","your","yours","yourself","yourselves"}

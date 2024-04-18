@@ -17,6 +17,7 @@ class Frontier(object):
         self.max_words_url = ""
         self.max_words = 0
         self.word_counts = {}
+        self.subdomains = {}
         
         if not os.path.exists(self.config.save_file) and not restart:
             # Save file does not exist, but request to load save.

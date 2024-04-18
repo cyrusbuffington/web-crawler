@@ -22,11 +22,26 @@ class Worker(Thread):
             tbd_url = self.frontier.get_tbd_url()
             if not tbd_url:
                 self.logger.info("Frontier is empty. Stopping Crawler.")
-                #Get downloaded subdomain data here with dictionary and self.frontier.downloaded
-                print(f'Unique pages fount: {len(self.frontier.downloaded)}')
+                #Print unique pages found
+                print(f'Unique pages found: {len(self.frontier.downloaded)}')
+
+                print()
+                #Print longest page
                 print(f'Longest page: {self.frontier.max_words_url} with {self.frontier.max_words} words')
 
-                print(self.frontier.word_counts.items()[:20])
+                print()
+
+                #Print most common words
+                word_counts = self.frontier.word_counts.items()
+                items = sorted(word_counts, key=lambda x: (-x[1], x[0]))
+                items = [item[0] for item in items]
+                print(f'50 most common words across pages:{items[:50]}')
+
+                print()
+                #Print subdomains of ics.uci.edu
+                print('Subdomains of ics.uci.edu:')
+                for key, item in self.frontier.subdomains.items():
+                    print(f'{key}, {item}')
                 
                 break
             resp = download(tbd_url, self.config, self.logger)
