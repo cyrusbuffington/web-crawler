@@ -4,10 +4,10 @@ from urllib import robotparser
 from bs4 import BeautifulSoup
 from hashlib import sha256
 
-def scraper(url, resp, fingerprints):
-    return extract_next_links(url, resp, fingerprints)
+def scraper(url, resp, fingerprints, downloaded):
+    return extract_next_links(url, resp, fingerprints, downloaded)
 
-def extract_next_links(url, resp, fingerprints):
+def extract_next_links(url, resp, fingerprints, downloaded):
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -17,6 +17,10 @@ def extract_next_links(url, resp, fingerprints):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
+
+
+    #Add url to total set of extracted urls
+    downloaded.add(url)
 
     #Return empty list if error
     if resp.status != 200:
@@ -37,8 +41,6 @@ def extract_next_links(url, resp, fingerprints):
     text_content_len = len(text_content)
     html_content_len = len(resp.raw_response.content)
     ratio =  text_content_len / html_content_len
-    print(ratio)
-    print(text_content_len)
     if ratio < .06:
         return list()
 
@@ -58,7 +60,7 @@ def extract_next_links(url, resp, fingerprints):
         #Remove query and fragment from link to avoid repetitive information
         link = urlunparse(urlparse(link)._replace(fragment='',query=''))
         #Add url to link list if it is valid and can be crawled
-        if is_valid(link) and not urls_differ_by_one_char(url, link) and not has_too_many_slashes(link, 4):
+        if is_valid(link) and urls_differ_by_two(url, link) and not has_too_many_slashes(link, 4):
             link_urls.append(link)
 
     return link_urls
@@ -106,7 +108,7 @@ def is_root_url(url):
     parsed_url = urlparse(url)
     return parsed_url.path in ('', '/')
 
-def urls_differ_by_one_char(url1, url2):
+def urls_differ_by_two(url1, url2):
     if len(url1) != len(url2):
         return False
     
@@ -117,7 +119,7 @@ def urls_differ_by_one_char(url1, url2):
             if diff_count > 1:
                 return False
     
-    return diff_count == 1
+    return diff_count > 2
 
 def has_too_many_slashes(url, threshold):
     slash_count = url.count('/')

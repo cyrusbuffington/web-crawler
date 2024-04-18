@@ -13,6 +13,7 @@ class Frontier(object):
         self.config = config
         self.to_be_downloaded = list()
         self.fingerprints = set()
+        self.downloaded = set()
         
         if not os.path.exists(self.config.save_file) and not restart:
             # Save file does not exist, but request to load save.
