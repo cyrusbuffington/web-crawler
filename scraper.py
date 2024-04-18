@@ -28,6 +28,14 @@ def extract_next_links(url, resp, frontier):
     
     #Parse html content
     soup = BeautifulSoup(resp.raw_response.content, 'lxml')
+    
+    #Check meta robots tag
+    robots_meta_tag = soup.find("meta", {"name": "robots"})
+    if robots_meta_tag:
+        #Extract the content attribute value
+        content = robots_meta_tag.get("content").split(',')
+        if "nofollow" in content:
+            return list()
 
     text_content = soup.get_text()
 
@@ -40,8 +48,9 @@ def extract_next_links(url, resp, frontier):
     #Check content to html ration to see if page has high textual content
     text_content_len = len(text_content)
     html_content_len = len(resp.raw_response.content)
+
     ratio =  text_content_len / html_content_len
-    if ratio < .06:
+    if html_content_len == 0 or ratio < .06:
         return list()
 
     #Tokenize content and keep track of max words in frontier
@@ -49,6 +58,10 @@ def extract_next_links(url, resp, frontier):
     if len(tokens) > frontier.max_words:
         frontier.max_words = len(tokens)
         frontier.max_words_url = url
+    
+    #Update word count for all pages
+    token_freq = computeWordFrequencies(tokens)
+    frontier.word_counts.update(token_freq)
 
     #Get all <a hrefs>s
     link_tags = soup.find_all('a', href=True)
@@ -66,11 +79,10 @@ def extract_next_links(url, resp, frontier):
         #Remove query and fragment from link to avoid repetitive information
         link = urlunparse(urlparse(link)._replace(fragment='',query=''))
         #Add url to link list if it is valid and can be crawled
-        if is_valid(link) and urls_differ_by_two(url, link) and not has_too_many_slashes(link, 4):
+        if is_valid(link) and not urls_differ_by_at_most_two_chars(url, link) and not has_too_many_slashes(link, 4):
             link_urls.append(link)
 
     return link_urls
-
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
@@ -86,7 +98,7 @@ def is_valid(url):
             + r"|png|tiff?|mid|mp2|mp3|mp4"
             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
+            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|bib"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
             + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower()) and valid_domain(url)
@@ -114,18 +126,20 @@ def is_root_url(url):
     parsed_url = urlparse(url)
     return parsed_url.path in ('', '/')
 
-def urls_differ_by_two(url1, url2):
+def urls_differ_by_at_most_two_chars(url1, url2):
     if len(url1) != len(url2):
         return False
-    
-    diff_count = 0
+
+    #Count the number of differing characters
+    differing_chars = 0
     for char1, char2 in zip(url1, url2):
         if char1 != char2:
-            diff_count += 1
-            if diff_count > 1:
+            differing_chars += 1
+            # If the number of differing characters exceeds 2, return False immediately
+            if differing_chars > 2:
                 return False
-    
-    return diff_count > 2
+
+    return True
 
 def has_too_many_slashes(url, threshold):
     slash_count = url.count('/')
@@ -153,6 +167,18 @@ def tokenize(text_content) -> list["Token"]:
 
     return tokens
 
+def computeWordFrequencies(tokens : list["Token"]) -> dict["Token", int]:
+    """
+    Compute the frequency of each word in the given list of tokens
+    """
+    freq = {}
+
+    # Count the frequency of each token
+    for token in tokens:
+        if not token in stopwords:
+            freq[token] = 1 + freq.get(token, 0)
+
+    return freq
 
 stopwords = {"a","about","above","after","again","against","all","am","an","and","any","are",
 "aren't","as","at","be","because","been","before","being","below","between",

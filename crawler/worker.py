@@ -25,6 +25,8 @@ class Worker(Thread):
                 #Get downloaded subdomain data here with dictionary and self.frontier.downloaded
                 print(f'Unique pages fount: {len(self.frontier.downloaded)}')
                 print(f'Longest page: {self.frontier.max_words_url} with {self.frontier.max_words} words')
+
+                print(self.frontier.word_counts.items()[:20])
                 
                 break
             resp = download(tbd_url, self.config, self.logger)
