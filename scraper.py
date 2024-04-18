@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 from hashlib import sha256
 
 def scraper(url, resp, fingerprints):
-    print(fingerprints)
     return extract_next_links(url, resp, fingerprints)
 
 def extract_next_links(url, resp, fingerprints):
@@ -23,13 +22,16 @@ def extract_next_links(url, resp, fingerprints):
     if resp.status != 200:
         return list()
     
-    content_hash = sha256(resp.raw_response.content).hexdigest()
+    #Parse html content
+    soup = BeautifulSoup(resp.raw_response.content, 'lxml')
+
+    text_content = soup.get_text()
+
+    content_hash = sha256(text_content.encode()).hexdigest()
     if content_hash in fingerprints:
         return list()
     fingerprints.add(content_hash)
 
-    #Parse html content
-    soup = BeautifulSoup(resp.raw_response.content, 'lxml')
 
     #Get all <a hrefs>s
     link_tags = soup.find_all('a', href=True)
@@ -45,9 +47,9 @@ def extract_next_links(url, resp, fingerprints):
         elif link.startswith('/'):
             link = urljoin(url, link)
         #Remove query and fragment from link to avoid repetitive information
-        link = urlunparse(urlparse(link)._replace(query='',fragment=''))
+        link = urlunparse(urlparse(link)._replace(fragment='',query=''))
         #Add url to link list if it is valid and can be crawled
-        if is_valid(link):
+        if is_valid(link) and not urls_differ_by_one_char(url, link) and not has_too_many_slashes(link, 4):
             link_urls.append(link)
 
     return link_urls
@@ -94,4 +96,21 @@ def valid_domain(url):
 def is_root_url(url):
     parsed_url = urlparse(url)
     return parsed_url.path in ('', '/')
+
+def urls_differ_by_one_char(url1, url2):
+    if len(url1) != len(url2):
+        return False
+    
+    diff_count = 0
+    for char1, char2 in zip(url1, url2):
+        if char1 != char2:
+            diff_count += 1
+            if diff_count > 1:
+                return False
+    
+    return diff_count == 1
+
+def has_too_many_slashes(url, threshold):
+    slash_count = url.count('/')
+    return slash_count > threshold
 
