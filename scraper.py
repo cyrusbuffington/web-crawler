@@ -26,17 +26,26 @@ def extract_next_links(url, resp, fingerprints):
     soup = BeautifulSoup(resp.raw_response.content, 'lxml')
 
     text_content = soup.get_text()
-
+    
+    #Handle duplicate content
     content_hash = sha256(text_content.encode()).hexdigest()
     if content_hash in fingerprints:
         return list()
     fingerprints.add(content_hash)
 
+    #Check content to html ration to see if page has high textual content
+    text_content_len = len(text_content)
+    html_content_len = len(resp.raw_response.content)
+    ratio =  text_content_len / html_content_len
+    print(ratio)
+    print(text_content_len)
+    if ratio < .06:
+        return list()
 
     #Get all <a hrefs>s
     link_tags = soup.find_all('a', href=True)
 
-    # Extract the URLs from the anchor tags and reformat
+    #Extract the URLs from the anchor tags and reformat
     link_urls = []
     for link in link_tags:
         link = link.get('href')
@@ -88,7 +97,7 @@ def valid_domain(url):
     domain = parsed_url.netloc.split('.')  
     if len(domain) < 3:
         return False
-    # Get the last three parts of the domain
+    #Get the last three parts of the domain
     domain = '.'.join(domain[-3:])
     return domain in valid_domains
 
