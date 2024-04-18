@@ -2,11 +2,13 @@ import re
 from urllib.parse import urlparse, urljoin, urlunparse
 from urllib import robotparser
 from bs4 import BeautifulSoup
+from hashlib import sha256
 
-def scraper(url, resp):
-    return extract_next_links(url, resp)
+def scraper(url, resp, fingerprints):
+    print(fingerprints)
+    return extract_next_links(url, resp, fingerprints)
 
-def extract_next_links(url, resp):
+def extract_next_links(url, resp, fingerprints):
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -20,6 +22,11 @@ def extract_next_links(url, resp):
     #Return empty list if error
     if resp.status != 200:
         return list()
+    
+    content_hash = sha256(resp.raw_response.content).hexdigest()
+    if content_hash in fingerprints:
+        return list()
+    fingerprints.add(content_hash)
 
     #Parse html content
     soup = BeautifulSoup(resp.raw_response.content, 'lxml')
