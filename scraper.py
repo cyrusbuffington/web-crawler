@@ -53,7 +53,7 @@ def extract_next_links(url, resp, frontier):
     html_content_len = len(resp.raw_response.content)
 
     ratio =  text_content_len / html_content_len
-    if html_content_len == 0 or ratio < .06:
+    if html_content_len == 0 or ratio < .05:
         return list()
 
 
@@ -66,11 +66,7 @@ def extract_next_links(url, resp, frontier):
     #Update word count for all pages
     token_freq = computeWordFrequencies(tokens)
     for key, value in token_freq.items():
-        if key in frontier.word_counts:
-            frontier.word_counts[key] += value
-        else:
-            frontier.word_counts[key] = value
-
+        frontier.word_counts[key] = frontier.word_counts.get(key, 0) + value
 
     #Get all <a hrefs>s
     link_tags = soup.find_all('a', href=True)
@@ -88,7 +84,7 @@ def extract_next_links(url, resp, frontier):
         #Remove query and fragment from link to avoid repetitive information
         link = urlunparse(urlparse(link)._replace(fragment='',query=''))
         #Add url to link list if it is valid and can be crawled
-        if is_valid(link) and not urls_differ_by_at_most_two_chars(url, link) and not has_too_many_slashes(link, 4):
+        if is_valid(link) and not urls_differ_by_at_most_n_chars(1, url, link) and not has_too_many_slashes(link, 6):
             link_urls.append(link)
 
     return link_urls
@@ -135,17 +131,16 @@ def is_root_url(url):
     parsed_url = urlparse(url)
     return parsed_url.path in ('', '/')
 
-def urls_differ_by_at_most_two_chars(url1, url2):
+def urls_differ_by_at_most_n_chars(n, url1, url2):
     if len(url1) != len(url2):
         return False
-
     #Count the number of differing characters
     differing_chars = 0
     for char1, char2 in zip(url1, url2):
         if char1 != char2:
             differing_chars += 1
-            # If the number of differing characters exceeds 2, return False immediately
-            if differing_chars > 2:
+            #If the number of differing characters exceeds n, return False immediately
+            if differing_chars > n:
                 return False
 
     return True

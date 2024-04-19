@@ -40,6 +40,7 @@ class Worker(Thread):
                 print()
                 #Print subdomains of ics.uci.edu
                 print('Subdomains of ics.uci.edu:')
+                self.frontier.subdomains.pop("https://ics.uci.edu", None)
                 self.frontier.subdomains.pop("https://www.ics.uci.edu", None)
                 subdomain_items = self.frontier.subdomains.items()
                 subdomain_items = sorted(subdomain_items)
