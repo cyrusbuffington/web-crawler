@@ -18,14 +18,17 @@ def extract_next_links(url, resp, frontier):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
-
-    #Add url to total set of extracted urls
-    frontier.downloaded.add(url)
-
     #Return empty list if error
     if resp.status != 200:
         return list()
     
+    #Add url to total set of extracted urls
+    frontier.downloaded.add(url)
+
+    #Add to ics.uci.edu subdomain dictionary
+    if is_subdomain_of('ics.uci.edu', url):
+        frontier.subdomains[root(url).lower()] = frontier.subdomains.get(root(url).lower(), 0) + 1
+
     #Parse html content
     soup = BeautifulSoup(resp.raw_response.content, 'lxml')
     
@@ -68,10 +71,6 @@ def extract_next_links(url, resp, frontier):
         else:
             frontier.word_counts[key] = value
 
-
-    #Add to ics.uci.edu subdomain dictionary
-    if is_subdomain_of('.ics.uci.edu', url):
-        frontier.subdomains[root(url)] = frontier.subdomains.get(root(url), 0) + 1
 
     #Get all <a hrefs>s
     link_tags = soup.find_all('a', href=True)
@@ -194,11 +193,12 @@ def computeWordFrequencies(tokens : list["Token"]) -> dict["Token", int]:
 def is_subdomain_of(domain, url):
     "Returns if url is a subdomain of domain"
     parsed_url = urlparse(url)
-    netloc = parsed_url.netloc
-    if len(domain) > len(netloc):
+    subdomain = parsed_url.netloc.split('.')  
+    if len(subdomain) < 3:
         return False
-    netloc = netloc[-len(domain):]
-    return netloc == domain
+    #Get the last three parts of the domain
+    subdomain = '.'.join(subdomain[-3:])
+    return subdomain == domain
 
 def root(url):
     "Returns root of url"
@@ -213,8 +213,8 @@ stopwords = {"a","about","above","after","again","against","all","am","an","and"
 "aren't","as","at","be","because","been","before","being","below","between",
 "both","but","by","can't","cannot","could","couldn't","did","didn't","do","does",
 "doesn't","doing","don't","down","during","each","few","for","from","further","had",
-"hadn't","has","hasn't","have","haven't","having","he","he'd","he'll","he's","her",
-"here","here's","hers","herself","him","his","how","how's","i","i'd","i'll","i'm",
+"hadn't","has","hasn't","have","haven't","having","he","he'd","'ll","he's","her",
+"here","here's","hers","herself","him","his","hheow","how's","i","i'd","i'll","i'm",
 "i've","if","in","into","is","isn't","it","it's","its","itself","let's","me","more",
 "most","mustn't","my","myself","no","nor","not","of","off","on","once","only","or",
 "other","ought","our","ours","ourselves","out","over","own","same","shan't","she",
