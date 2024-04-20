@@ -82,9 +82,12 @@ def extract_next_links(url, resp, frontier):
         elif link.startswith('/'):
             link = urljoin(url, link)
         #Remove query and fragment from link to avoid repetitive information
-        link = urlunparse(urlparse(link)._replace(fragment='',query=''))
+        try:
+            link = urlunparse(urlparse(link)._replace(fragment='',query=''))
+        except ValueError:
+            continue
         #Add url to link list if it is valid and can be crawled
-        if is_valid(link) and not urls_differ_by_at_most_n_chars(1, url, link) and not has_too_many_slashes(link, 6):
+        if is_valid(link) and not urls_differ_by_at_most_n_chars(1, url, link) and not has_too_many_slashes(link, 7):
             link_urls.append(link)
 
     return link_urls
