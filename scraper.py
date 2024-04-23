@@ -89,7 +89,7 @@ def extract_next_links(url, resp, frontier):
         except ValueError:
             continue
         #Add url to link list if it is valid and can be crawled
-        if is_valid(link) and not urls_differ_by_at_most_n_chars(1, url, link) and not has_too_many_slashes(link, 7):
+        if is_valid(link) and not urls_differ_by_at_most_n_chars(2, url, link) and not has_too_many_slashes(link, 7):
             link_urls.append(link)
 
     return link_urls
@@ -137,7 +137,7 @@ def is_root_url(url):
     return parsed_url.path in ('', '/')
 
 def urls_differ_by_at_most_n_chars(n, url1, url2):
-    if len(url1) != len(url2):
+    if abs(len(url1) - len(url2)) > n:
         return False
     #Count the number of differing characters
     differing_chars = 0
@@ -147,7 +147,6 @@ def urls_differ_by_at_most_n_chars(n, url1, url2):
             #If the number of differing characters exceeds n, return False immediately
             if differing_chars > n:
                 return False
-
     return True
 
 def has_too_many_slashes(url, threshold):
