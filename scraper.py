@@ -21,9 +21,6 @@ def extract_next_links(url, resp, frontier):
     #Return empty list if error
     if resp.status != 200:
         return list()
-    
-    #Add url to total set of extracted urls
-    frontier.downloaded.add(url)
 
     #Add to ics.uci.edu subdomain dictionary
     if is_subdomain_of('ics.uci.edu', url):
@@ -74,7 +71,12 @@ def extract_next_links(url, resp, frontier):
     #Extract the URLs from the anchor tags and reformat
     link_urls = []
     for link in link_tags:
+        #If no follow in href don't crawl
+        if link.get('rel') == 'nofollow':
+            continue
+        #Get link
         link = link.get('href').strip()
+        #If fragment don't bother
         if not link or link[0] == '#':
             pass
         elif link.startswith('//'):
@@ -83,7 +85,7 @@ def extract_next_links(url, resp, frontier):
             link = urljoin(url, link)
         #Remove query and fragment from link to avoid repetitive information
         try:
-            link = urlunparse(urlparse(link)._replace(fragment='',query=''))
+            link = urlunparse(urlparse(link)._replace(fragment='', query=''))
         except ValueError:
             continue
         #Add url to link list if it is valid and can be crawled
