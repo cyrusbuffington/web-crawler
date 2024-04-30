@@ -13,6 +13,7 @@ class Frontier(object):
         self.config = config
         self.to_be_downloaded = list()
         self.fingerprints = set()
+        self.sim_fingerprints = set()
         self.downloaded = set()
         self.max_words_url = ""
         self.max_words = 0

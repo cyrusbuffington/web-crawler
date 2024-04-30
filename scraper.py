@@ -3,6 +3,7 @@ from urllib.parse import urlparse, urljoin, urlunparse
 from urllib import robotparser
 from bs4 import BeautifulSoup
 from hashlib import sha256
+from simhash import Simhash
 
 def scraper(url, resp, frontier):
     return extract_next_links(url, resp, frontier)
@@ -45,12 +46,21 @@ def extract_next_links(url, resp, frontier):
         return list()
     frontier.fingerprints.add(content_hash)
 
+    #Handle similar content
+    simhash = Simhash(text_content)
+    max_hash_bits = len(bin(simhash.value))
+    for sim in frontier.sim_fingerprints:
+        similarity = simhash.distance(Simhash(sim)) / max_hash_bits
+        if similarity < 0.025:
+            return list()
+    frontier.sim_fingerprints.add(simhash.value)
+
     #Check content to html ration to see if page has high textual content
     text_content_len = len(text_content)
     html_content_len = len(resp.raw_response.content)
 
     ratio =  text_content_len / html_content_len
-    if html_content_len == 0 or ratio < .05:
+    if html_content_len == 0 or ratio < .01:
         return list()
 
 
@@ -85,11 +95,11 @@ def extract_next_links(url, resp, frontier):
             link = urljoin(url, link)
         #Remove query and fragment from link to avoid repetitive information
         try:
-            link = urlunparse(urlparse(link)._replace(fragment='', query=''))
+            link = urlunparse(urlparse(link)._replace(fragment='',query=''))
         except ValueError:
             continue
         #Add url to link list if it is valid and can be crawled
-        if is_valid(link) and not urls_differ_by_at_most_n_chars(2, url, link) and not has_too_many_slashes(link, 7):
+        if is_valid(link) and not urls_differ_by_at_most_n_chars(2, url, link) and not has_too_many_slashes(link, 12):
             link_urls.append(link)
 
     return link_urls
@@ -108,7 +118,7 @@ def is_valid(url):
             + r"|png|tiff?|mid|mp2|mp3|mp4"
             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
             + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|bib"
+            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
             + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower()) and valid_domain(url)
